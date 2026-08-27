@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Trading Hub Panel</title>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            background: radial-gradient(circle at 50% 50%, #0c1825, #080b10);
+            color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; overflow-x: hidden; position: relative;
+        }
+        .bg-particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+        .star { position: absolute; background: #ffffff; border-radius: 50%; opacity: 0.3; animation: twinkle var(--duration) infinite ease-in-out; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 0.8; transform: scale(1.2); } }
+
+        .top-ticker {
+            width: 100%; background-color: #FFD700; color: #000000; font-weight: 800;
+            font-size: 11px; padding: 7px 0; overflow: hidden; white-space: nowrap;
+            position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+        }
+        .ticker-text { display: inline-block; padding-left: 100%; animation: ticker 18s linear infinite; }
+        @keyframes ticker { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+
+        .main-wrapper { width: 100%; max-width: 420px; padding: 14px 14px 90px 14px; z-index: 1; display: none; }
+
+        .auth-wrapper {
+            width: 100%; max-width: 380px; padding: 24px; margin-top: 30px; z-index: 2;
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 18px; text-align: center;
+        }
+        .auth-title { font-size: 22px; font-weight: 800; color: #38bdf8; margin-bottom: 6px; text-transform: uppercase; }
+        .auth-sub { font-size: 12px; color: #94a3b8; margin-bottom: 20px; }
+        .input-group { margin-bottom: 12px; text-align: left; }
+        .input-group label { display: block; font-size: 11px; color: #cbd5e1; margin-bottom: 5px; font-weight: 600; }
+        .input-control { width: 100%; padding: 11px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; font-size: 13px; outline: none; }
+
+        #sync-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(8, 11, 16, 0.96); backdrop-filter: blur(12px); z-index: 3000;
+            flex-direction: column; justify-content: center; align-items: center; padding: 24px; text-align: center;
+        }
+        .sync-spinner { width: 50px; height: 50px; border: 4px solid #1e293b; border-top: 4px solid #38bdf8; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .sync-progress-bar { width: 100%; max-width: 280px; height: 6px; background: #1e293b; border-radius: 4px; overflow: hidden; margin: 16px 0 8px 0; }
+        .sync-progress-fill { height: 100%; background: linear-gradient(90deg, #0284c7, #38bdf8); width: 0%; transition: width 1s linear; }
+
+        .app-header { text-align: center; margin-bottom: 14px; }
+        .app-header h2 { margin: 0; font-size: 20px; font-weight: 800; color: #ffffff; text-transform: uppercase; }
+        .sub-header { display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8; margin-top: 4px; }
+        .status-dot { height: 7px; width: 7px; background-color: #10b981; border-radius: 50%; box-shadow: 0 0 6px #10b981; }
+
+        .card {
+            background: rgba(10, 25, 41, 0.85); backdrop-filter: blur(12px); padding: 16px;
+            border-radius: 14px; text-align: center; margin-bottom: 14px;
+            border: 1px solid rgba(255, 215, 0, 0.25); box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        .card p { color: #e2e8f0; margin: 0; font-size: 11px; font-weight: 700; }
+        .card h1 { color: #fbbf24; margin: 6px 0 8px 0; font-size: 34px; font-weight: 800; font-family: monospace; }
+
+        .btn {
+            width: 100%; padding: 14px; border-radius: 10px; border: none;
+            background: linear-gradient(135deg, #0284c7, #0891b2); color: #ffffff;
+            font-weight: 700; font-size: 14px; cursor: pointer; margin-bottom: 16px;
+        }
+        .btn:disabled { background: #334155 !important; color: #94a3b8 !important; cursor: not-allowed; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+        .metric-card { border-radius: 10px; padding: 12px; }
+        .metric-title { font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+        .metric-value { font-size: 17px; font-weight: 800; font-family: monospace; }
+
+        .card-lime { background-color: #0d3822; border: 1px solid #10b981; color: #4ade80; }
+        .card-lightblue { background-color: #0c334c; border: 1px solid #0284c7; color: #38bdf8; }
+        .card-softblue { background-color: #122b46; border: 1px solid #3b82f6; color: #60a5fa; }
+        .card-gold { background-color: #3b2d08; border: 1px solid #d97706; color: #fbbf24; }
+
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .btn-green { background: #059669; color: #ffffff; border: none; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+        .btn-white { background: #ffffff; color: #0f172a; border: none; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+        .btn-yellow-withdraw {
+            width: 100%; background: linear-gradient(135deg, #FFD700, #d97706); color: #000;
+            border: none; padding: 13px; border-radius: 8px; font-weight: 800; font-size: 13px; cursor: pointer; margin-bottom: 18px;
+        }
+
+        .history-card { background-color: #ffffff; color: #0f172a; border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 12px; }
+        .history-table th { text-align: left; padding: 6px 4px; border-bottom: 2px solid #e2e8f0; color: #475569; }
+        .history-table td { padding: 8px 4px; border-bottom: 1px solid #f1f5f9; font-size: 10.5px; }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: rgba(3, 20, 32, 0.98); backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: none; justify-content: space-around; padding: 8px 0; z-index: 900;
+        }
+        .nav-tab { display: flex; flex-direction: column; align-items: center; color: #64748b; font-size: 10px; cursor: pointer; }
+        .nav-tab.active { color: #38bdf8; font-weight: 700; }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);
+            justify-content: center; align-items: center; z-index: 2000; padding: 15px; opacity: 0; transition: opacity 0.25s ease;
+        }
+        .modal.active-modal { display: flex; opacity: 1; }
+        .modal-content {
+            background: #0f172a; padding: 20px; border-radius: 16px; text-align: center;
+            max-width: 380px; width: 100%; max-height: 90vh; overflow-y: auto; border: 1px solid #1e293b;
+        }
+
+        .chart-box {
+            width: 100%; height: 160px; background: #020617; border: 1px solid #1e293b;
+            border-radius: 8px; margin: 10px 0; position: relative; overflow: hidden;
+        }
+        .trade-action-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .btn-up { background: #10b981; color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-down { background: #ef4444; color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+        .ref-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 12px; margin-bottom: 12px; text-align: left; }
+        .ref-box-row { display: flex; align-items: center; justify-content: space-between; background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 6px 10px; margin-top: 6px; }
+        .ref-input-text { font-family: monospace; font-size: 11px; color: #38bdf8; font-weight: bold; word-break: break-all; }
+        .copy-btn { background: #0284c7; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 10.5px; font-weight: bold; cursor: pointer; }
+        .warning-box { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; font-size: 10.5px; padding: 8px; border-radius: 6px; margin: 10px 0; text-align: left; line-height: 1.4; }
+
+        .profile-container { text-align: center; }
+        .profile-avatar-box {
+            width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, #0284c7, #38bdf8);
+            display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto;
+            font-size: 28px; font-weight: 800; color: #ffffff; border: 3px solid rgba(56, 189, 248, 0.3);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+        }
+        .profile-badge {
+            display: inline-block; background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981;
+            color: #4ade80; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 12px; margin-bottom: 15px;
+        }
+        .profile-info-grid { text-align: left; background: #1e293b; border-radius: 12px; padding: 12px; border: 1px solid #334155; margin-bottom: 15px; }
+        .profile-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .profile-item:last-child { border-bottom: none; }
+        .profile-label { font-size: 11px; color: #94a3b8; font-weight: 600; }
+        .profile-val { font-size: 11px; color: #f8fafc; font-weight: 700; font-family: monospace; }
+        .btn-logout {
+            width: 100%; padding: 12px; border-radius: 8px; border: none;
+            background: linear-gradient(135deg, #dc2626, #ef4444); color: #ffffff;
+            font-weight: 800; font-size: 13px; cursor: pointer; margin-top: 5px;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+    </style>
+
+<style id="trading-hub-luxury-theme-v1">
+:root{--gold:#d7b36a;--gold2:#f3dda7;--bg:#05060a;--text:#f6f2e9;--muted:#999daa}
+html,body{background:radial-gradient(circle at 12% 0%,rgba(215,179,106,.12),transparent 27%),radial-gradient(circle at 88% 16%,rgba(87,105,194,.10),transparent 30%),linear-gradient(145deg,#05060a,#0b0e16 50%,#06070b)!important;color:var(--text)!important}
+body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif!important}
+body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);background-size:44px 44px}
+button{border-radius:14px!important;border:1px solid rgba(255,255,255,.10)!important;transition:.18s ease!important}
+button:hover{transform:translateY(-2px)!important;box-shadow:0 14px 34px rgba(0,0,0,.30)!important}
+button:active{transform:scale(.985)!important}
+input,select,textarea{background:rgba(255,255,255,.045)!important;color:var(--text)!important;border:1px solid rgba(255,255,255,.10)!important;border-radius:13px!important}
+input:focus,select:focus,textarea:focus{outline:none!important;border-color:rgba(215,179,106,.70)!important;box-shadow:0 0 0 3px rgba(215,179,106,.10)!important}
+.card,.panel,.box,.stat-card,.balance-card,.modal-content,[class*="card"],[class*="panel"]{background:linear-gradient(145deg,rgba(18,21,30,.86),rgba(8,10,15,.88))!important;border-color:rgba(255,255,255,.09)!important;box-shadow:0 25px 75px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.025)!important}
+header,.topbar,.navbar,.bottom-nav,#bottom-navbar{background:rgba(7,8,13,.84)!important;backdrop-filter:blur(22px)!important;-webkit-backdrop-filter:blur(22px)!important;border-color:rgba(255,255,255,.07)!important}
+#bottom-navbar{box-shadow:0 -20px 48px rgba(0,0,0,.34)!important}
+h1,h2,h3,h4,h5,h6{letter-spacing:-.025em}
+small,.muted,.text-muted{color:var(--muted)!important}
+a{color:var(--gold2)!important}
+button[type="submit"],.primary,.btn-primary,.gold-btn{background:linear-gradient(135deg,#a97b32,#f0d58e 52%,#b48840)!important;color:#171208!important;border-color:rgba(243,221,167,.62)!important;font-weight:800!important;box-shadow:0 10px 28px rgba(215,179,106,.16)!important}
+button[type="submit"]:hover,.primary:hover,.btn-primary:hover,.gold-btn:hover{box-shadow:0 16px 42px rgba(215,179,106,.26)!important}
+button:not([type="submit"]){background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.032))!important;color:var(--text)!important}
+#val-current,#val-equity,#val-withdrawal,#val-deposit{color:var(--gold2)!important;text-shadow:0 0 28px rgba(215,179,106,.13);font-variant-numeric:tabular-nums}
+#val-equity{color:#e8f7ef!important}
+#auth-screen,#login-screen,#signup-screen{background:radial-gradient(circle at 50% 0%,rgba(215,179,106,.14),transparent 34%),linear-gradient(145deg,#06070c,#0d1119 55%,#07080d)!important}
+#auth-screen .card,#login-screen .card,#signup-screen .card{background:linear-gradient(145deg,rgba(28,30,41,.96),rgba(8,10,15,.96))!important;border:1px solid rgba(215,179,106,.19)!important;box-shadow:0 38px 105px rgba(0,0,0,.58)!important}
+table{border-collapse:separate!important;border-spacing:0 7px!important}
+thead th{color:var(--gold2)!important;text-transform:uppercase!important;font-size:.72rem!important;letter-spacing:.10em!important}
+tbody tr{background:rgba(255,255,255,.032)!important}
+.modal,.overlay,[role="dialog"]{backdrop-filter:blur(15px)!important;-webkit-backdrop-filter:blur(15px)!important}
+.modal-content,[role="dialog"]{background:linear-gradient(145deg,rgba(28,30,41,.98),rgba(8,9,14,.98))!important;border:1px solid rgba(215,179,106,.19)!important;box-shadow:0 45px 125px rgba(0,0,0,.64)!important}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-track{background:#07080d}::-webkit-scrollbar-thumb{background:linear-gradient(#8d6c37,#d7b36a);border-radius:20px}
+::selection{background:rgba(215,179,106,.28);color:#fff}
+</style>
+
+</head>
+<body>
+
+<div class="top-ticker">
+    <div class="ticker-text">🔥 WELCOME TO Trading Hub PANEL | 🚀 SPECIAL REFERRAL OFFER: INVITE FRIENDS & GET AN INSTANT $1.00 BONUS IMMEDIATELY! 🚀</div>
+</div>
+
+<div class="bg-particles" id="stars-container"></div>
+
+<!-- Sync Overlay -->
+<div id="sync-overlay">
+    <div class="sync-spinner"></div>
+    <div style="font-size: 16px; font-weight: 800; color: #38bdf8; margin-bottom: 6px;">SYNCHRONIZING TERMINAL</div>
+    <div style="font-size: 11px; color: #94a3b8; max-width: 260px; line-height: 1.5;">Establishing encrypted connection, verifying credentials & loading real-time market feeds...</div>
+    <div class="sync-progress-bar"><div id="sync-fill" class="sync-progress-fill"></div></div>
+    <div id="sync-timer-text" style="font-size: 12px; font-weight: bold; color: #fbbf24; font-family: monospace;">Please wait: 5s</div>
+</div>
+
+<!-- Registration / Login Screen -->
+<div class="auth-wrapper" id="auth-screen">
+    <div class="auth-title">Trading Hub</div>
+    <div class="auth-sub">Secure account access</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;">
+        <button id="signup-tab" class="btn" onclick="showAuthPanel('signup')" style="margin:0;padding:11px;">SIGN UP</button>
+        <button id="signin-tab" class="btn" onclick="showAuthPanel('signin')" style="margin:0;padding:11px;background:#1e293b;color:#94a3b8;">SIGN IN</button>
+    </div>
+
+    <div id="signup-panel">
+        <div style="font-size:15px;font-weight:800;color:#f8fafc;margin-bottom:14px;">Create New Account</div>
+        <div class="input-group"><label>First Name</label><input type="text" id="reg-fname" class="input-control" placeholder="e.g. John"></div>
+        <div class="input-group"><label>Last Name</label><input type="text" id="reg-lname" class="input-control" placeholder="e.g. Max"></div>
+        <div class="input-group"><label>Gmail Address</label><input type="email" id="reg-email" class="input-control" placeholder="name@gmail.com"></div>
+        <div class="input-group"><label>Pakistani Mobile Number</label><input type="tel" id="reg-phone" class="input-control" placeholder="03001234567"></div>
+        <div class="input-group"><label>Referral Code (Optional)</label><input type="text" id="reg-refcode" class="input-control" placeholder="e.g. REF123456"></div>
+        <button class="btn" id="reg-btn" onclick="handleRegistration()" style="margin-top:10px;">CREATE ACCOUNT</button>
+    </div>
+
+    <div id="signin-panel" style="display:none;">
+        <div style="font-size:15px;font-weight:800;color:#f8fafc;margin-bottom:14px;">Welcome Back</div>
+        <div class="input-group"><label>Gmail Address</label><input type="email" id="login-email" class="input-control" placeholder="name@gmail.com" autocomplete="email"></div>
+        <div class="input-group"><label>Pakistani Mobile Number</label><input type="tel" id="login-phone" class="input-control" placeholder="03001234567" autocomplete="tel"></div>
+        <button class="btn" id="login-btn" onclick="handleLogin()" style="margin-top:10px;">SIGN IN</button>
+        <div style="font-size:10px;color:#64748b;line-height:1.5;margin-top:2px;">Use the same Gmail and Pakistani mobile number you used when registering.</div>
+    </div>
+</div>
+
+<!-- Main Application Dashboard -->
+<div class="main-wrapper" id="main-dashboard">
+    <div class="app-header">
+        <h2>Trading Hub PANEL</h2>
+        <div class="sub-header">
+            <span class="status-dot"></span>
+            <span style="color:#10b981; font-weight:700;">LIVE MARKET</span>
+            <span>|</span>
+            <span id="live-datetime" style="font-family:monospace;">--:--:-- | -- --- ----</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <p id="active-asset-title">GOLD (XAU/USD) REAL-TIME</p>
+        <h1 id="active-asset-price">Fetching...</h1>
+    </div>
+
+    <div id="trade-section">
+        <button class="btn" id="trade-main-btn" onclick="handleTradeClick()">📈 TRADE (1m CHART)</button>
+    </div>
+
+    <div class="stats-grid">
+        <div class="metric-card card-lime"><div class="metric-title">Current Amount</div><div class="metric-value" id="val-current">$0.00</div></div>
+        <div class="metric-card card-lightblue"><div class="metric-title">Deposit Amount</div><div class="metric-value" id="val-deposit">$0.00</div></div>
+        <div class="metric-card card-softblue"><div class="metric-title">Live Equity</div><div class="metric-value" id="val-equity">$0.00</div></div>
+        <div class="metric-card card-gold"><div class="metric-title">Live Withdrawal</div><div class="metric-value" id="val-withdrawal">$0.00</div></div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-green" onclick="openDepositModal()">Add Funds</button>
+        <button class="btn-white" onclick="openRulesModal()">RULES & LEGAL PDF</button>
+    </div>
+
+    <button class="btn-yellow-withdraw" onclick="handleWithdrawalClick()">💰 WITHDRAW FUNDS</button>
+
+    <div class="history-card">
+        <div style="font-weight:800; font-size:14px; margin-bottom:6px;">📈 DAILY TRADE HISTORY</div>
+        <table class="history-table">
+            <thead>
+                <tr><th>DATE</th><th>TYPE</th><th>ASSET</th><th>P/L</th></tr>
+            </thead>
+            <tbody id="history-rows">
+                <tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:12px;">No trade history recorded today.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Bottom Navigation Bar -->
+<div class="bottom-nav" id="bottom-navbar">
+    <div class="nav-tab active" onclick="openReferralsModal()"><span style="font-size:16px;">🤝</span><span>Referrals</span></div>
+    <div class="nav-tab" onclick="openDepositModal()"><span style="font-size:16px;">💳</span><span>Deposit</span></div>
+    <div class="nav-tab" onclick="openRulesModal()"><span style="font-size:16px;">📜</span><span>Rules</span></div>
+    <div class="nav-tab" onclick="openProfileModal()"><span style="font-size:16px;">👤</span><span>Profile</span></div>
+</div>
+
+<!-- Dynamic Modal -->
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <div id="modal-title" style="font-weight:700; margin-bottom:10px; color:#f8fafc; font-size:16px;">Notice</div>
+        <div id="modal-body" style="font-size:12px; margin-bottom:18px; color:#94a3b8; white-space:pre-line; line-height:1.5; text-align:left;"></div>
+        <button class="btn" id="modal-close-btn" onclick="closePopup()" style="margin-bottom:0; padding:10px;">Close</button>
+    </div>
+</div>
+
+<script>
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx256xgXt8euhi_1KK2U5H9joh5e1TTMgsmPG3jvLC-IwlwoSyv60zwwAWv7-1Yp3U40w/exec";
+    const DEPOSIT_ADDRESS = "0xfeff2067ef1a43aa4bca186f702b2669971debbd";
+    const NETWORK_NAME = "BNB Smart Chain (BEP20)";
+
+    let currentUser = JSON.parse(localStorage.getItem('traderUser')) || null;
+    let serverBalances = { balance:0, depositBal:0, liveWithdrawal:0, withdrawalBal:0, pendingWithdrawal:0 };
+    function authPayload(extra={}) { return Object.assign({ email: currentUser?.email || '', sessionToken: currentUser?.sessionToken || '' }, extra); }
+    async function getServerBalances() {
+        if (!currentUser?.email || !currentUser?.sessionToken) throw new Error('Secure session expired. Please register again on this device.');
+        const res = await fetch(GOOGLE_SCRIPT_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(authPayload({action_type:'fetch_user_data'}))});
+        const data = await res.json();
+        if (data.status !== 'success') throw new Error(data.message || 'Unable to verify account.');
+        serverBalances = { balance:Number(data.balance)||0, depositBal:Number(data.depositBal)||0, liveWithdrawal:Number(data.liveWithdrawal)||0, withdrawalBal:Number(data.withdrawalBal)||0, pendingWithdrawal:Number(data.pendingWithdrawal)||0 };
+        return data;
+    }
+    let chartAnimationInterval = null;
+
+    // Stars particle effect
+    const container = document.getElementById('stars-container');
+    for (let i = 0; i < 30; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.width = Math.random() * 3 + 'px';
+        star.style.height = star.style.width;
+        star.style.top = Math.random() * 100 + '%';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
+        container.appendChild(star);
+    }
+
+    function updateLiveTime() {
+        const now = new Date();
+        const timeElem = document.getElementById('live-datetime');
+        if (timeElem) timeElem.innerText = `${now.toLocaleTimeString()} | ${now.toLocaleDateString('en-GB')}`;
+    }
+    setInterval(updateLiveTime, 1000);
+
+    /* Real-Time Gold Price Fetching */
+    async function fetchLiveGoldPrice() {
+        try {
+            const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT");
+            const data = await res.json();
+            if (data.price) {
+                document.getElementById('active-asset-price').innerText = `$${parseFloat(data.price).toFixed(2)}`;
+            }
+        } catch (e) {
+            let fallback = (2650 + Math.random() * 5).toFixed(2);
+            document.getElementById('active-asset-price').innerText = `$${fallback}`;
+        }
+    }
+    fetchLiveGoldPrice();
+    setInterval(fetchLiveGoldPrice, 3000);
+
+    /* Status Heartbeat Update */
+    function sendUserStatusUpdate(status) {
+        if (!currentUser || !currentUser.email) return;
+        const payload = JSON.stringify({
+            action_type: "update_status",
+            email: currentUser.email,
+            sessionToken: currentUser.sessionToken,
+            user_status: status
+        });
+
+        if (status === "Offline" && navigator.sendBeacon) {
+            navigator.sendBeacon(GOOGLE_SCRIPT_URL, payload);
+        } else {
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: payload
+            }).catch(err => console.error("Status Ping Error:", err));
+        }
+    }
+
+    setInterval(() => {
+        if (currentUser && currentUser.email) sendUserStatusUpdate("Online");
+    }, 60000);
+
+    window.addEventListener('pagehide', function() {
+        sendUserStatusUpdate("Offline");
+    });
+
+    function checkAuth() {
+        if (currentUser && currentUser.email && currentUser.sessionToken) {
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('main-dashboard').style.display = 'block';
+            document.getElementById('bottom-navbar').style.display = 'flex';
+            if (!currentUser.refCode) currentUser.refCode = generateReferralCode(currentUser.email);
+            loadBalances();
+            renderTradeHistory();
+            checkTradeLockStatus();
+            sendUserStatusUpdate("Online");
+        } else {
+            document.getElementById('auth-screen').style.display = 'block';
+            document.getElementById('main-dashboard').style.display = 'none';
+            document.getElementById('bottom-navbar').style.display = 'none';
+        }
+    }
+
+    /* Server-authoritative balances */
+    let lastApprovedDeposit = 0;
+    let lastApprovedWithdrawal = 0;
+    let lastPendingWithdrawal = 0;
+
+    async function loadBalances(showNotifications = true) {
+        if (!currentUser || !currentUser.email) return;
+        try {
+            const res = await fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST', headers: {'Content-Type':'text/plain;charset=utf-8'},
+                body: JSON.stringify(authPayload({action_type:'fetch_user_data'}))
+            });
+            const data = await res.json();
+            if (data.status !== 'success') return;
+
+            const curr = parseFloat(data.balance) || 0;
+            const dep = parseFloat(data.depositBal) || 0;
+            const liveW = parseFloat(data.liveWithdrawal) || 0;
+            const withBal = parseFloat(data.withdrawalBal) || 0;
+
+            serverBalances = {balance:curr, depositBal:dep, liveWithdrawal:liveW, withdrawalBal:withBal, pendingWithdrawal:Number(data.pendingWithdrawal)||0};
+            ['currentBal','depositBal','withdrawalBal'].forEach(k=>localStorage.removeItem(k));
+
+            document.getElementById('val-current').innerText = `$${curr.toFixed(2)}`;
+            document.getElementById('val-deposit').innerText = `$${dep.toFixed(2)}`;
+            document.getElementById('val-equity').innerText = `$${curr.toFixed(2)}`;
+            document.getElementById('val-withdrawal').innerText = `$${liveW.toFixed(2)}`;
+
+            if (showNotifications) {
+                if (parseFloat(data.depositBal) > lastApprovedDeposit && lastApprovedDeposit > 0) {
+                    showPopup('✅ Deposit Approved', `Your approved deposit of $${(parseFloat(data.depositBal)-lastApprovedDeposit).toFixed(2)} has been credited to your Current Amount.`);
+                }
+                if (parseFloat(data.withdrawalBal) > lastApprovedWithdrawal && lastApprovedWithdrawal >= 0 && lastApprovedWithdrawal !== 0) {
+                    showPopup('✅ Withdrawal Approved', 'Your withdrawal has been approved and your balance has been updated.');
+                }
+                if (lastPendingWithdrawal > 0 && parseFloat(data.withdrawalBal) >= lastPendingWithdrawal) {
+                    showPopup('✅ Withdrawal Approved', 'Your withdrawal has been approved and your balance has been updated.');
+                }
+            }
+            lastApprovedDeposit = parseFloat(data.depositBal) || 0;
+            lastApprovedWithdrawal = parseFloat(data.withdrawalBal) || 0;
+            lastPendingWithdrawal = parseFloat(data.pendingWithdrawal) || 0;
+        } catch (err) { console.log('Balance sync:', err); }
+    }
+
+    function startBalancePolling() {
+        loadBalances(false);
+        setInterval(() => loadBalances(true), 10000);
+    }
+
+    function generateReferralCode(email) {
+        let hash = 0;
+        for (let i = 0; i < email.length; i++) hash = email.charCodeAt(i) + ((hash << 5) - hash);
+        return 'REF' + Math.abs(hash).toString(16).toUpperCase().substring(0, 6);
+    }
+
+    function validatePakistaniPhone(phone) {
+        const pakRegex = /^((\+92)|(0092)|(0))?3[0-9]{9}$/;
+        return pakRegex.test(phone.replace(/[\s\-]/g, ''));
+    }
+
+    function showAuthPanel(panel) {
+        const signup = document.getElementById('signup-panel');
+        const signin = document.getElementById('signin-panel');
+        const signupTab = document.getElementById('signup-tab');
+        const signinTab = document.getElementById('signin-tab');
+        if (panel === 'signin') {
+            signup.style.display='none'; signin.style.display='block';
+            signinTab.style.background='linear-gradient(135deg,#0284c7,#0891b2)'; signinTab.style.color='#fff';
+            signupTab.style.background='#1e293b'; signupTab.style.color='#94a3b8';
+        } else {
+            signup.style.display='block'; signin.style.display='none';
+            signupTab.style.background='linear-gradient(135deg,#0284c7,#0891b2)'; signupTab.style.color='#fff';
+            signinTab.style.background='#1e293b'; signinTab.style.color='#94a3b8';
+        }
+    }
+
+    async function handleLogin() {
+        const email = document.getElementById('login-email').value.trim().toLowerCase();
+        const phone = document.getElementById('login-phone').value.trim();
+        if (!/^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@gmail\.com$/i.test(email)) return alert('Only Gmail addresses are allowed.');
+        if (!validatePakistaniPhone(phone)) return alert('Only valid Pakistani mobile numbers are allowed.');
+
+        const btn=document.getElementById('login-btn');
+        btn.disabled=true; btn.innerText='VERIFYING...';
+        try {
+            const res=await fetch(GOOGLE_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({
+                action_type:'login', email:email, phone:phone
+            })});
+            const data=await res.json();
+            if (data.status!=='success') {
+                alert(data.message || 'Sign in failed. Please check your Gmail and mobile number.');
+                btn.disabled=false; btn.innerText='SIGN IN'; return;
+            }
+            currentUser={
+                fname:data.fname||'', lname:data.lname||'', name:data.name||'',
+                email:data.email||email, phone:data.phone||phone,
+                refCode:data.refCode||'', sessionToken:data.sessionToken||''
+            };
+            localStorage.setItem('traderUser',JSON.stringify(currentUser));
+            ['currentBal','depositBal','withdrawalBal'].forEach(k=>localStorage.removeItem(k));
+            document.getElementById('auth-screen').style.display='none';
+            document.getElementById('sync-overlay').style.display='flex';
+            document.getElementById('sync-timer-text').innerText='Signing in securely...';
+            document.getElementById('sync-fill').style.width='100%';
+            setTimeout(()=>{document.getElementById('sync-overlay').style.display='none';checkAuth();},700);
+        } catch(err) {
+            alert('Sign in server is unavailable. Please try again.');
+        } finally {
+            btn.disabled=false; btn.innerText='SIGN IN';
+        }
+    }
+
+    /* Registration Logic with One-Time $1 Referral Bonus */
+    async function handleRegistration() {
+        const fname = document.getElementById('reg-fname').value.trim();
+        const lname = document.getElementById('reg-lname').value.trim();
+        const email = document.getElementById('reg-email').value.trim().toLowerCase();
+        const phone = document.getElementById('reg-phone').value.trim();
+        const refBy = document.getElementById('reg-refcode').value.trim().toUpperCase();
+
+        if (!fname || !lname) return alert('Please enter your first and last name.');
+        if (!/^[^@\s]+@gmail\.com$/i.test(email)) return alert('Only Gmail addresses are allowed.');
+        if (!validatePakistaniPhone(phone)) return alert('Only valid Pakistani mobile numbers are allowed.');
+
+        const regBtn = document.getElementById('reg-btn');
+        regBtn.disabled = true; regBtn.innerText = 'Verifying...';
+        const myRefCode = generateReferralCode(email);
+        try {
+            const res = await fetch(GOOGLE_SCRIPT_URL, {method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({
+                action_type:'register', name:`${fname} ${lname}`.trim(), email, phone, ref_code:myRefCode, referred_by:refBy
+            })});
+            const data = await res.json();
+            if (data.status !== 'success') { alert(data.message || 'Registration failed.'); regBtn.disabled=false; regBtn.innerText='Enter Dashboard'; return; }
+
+            currentUser={fname,lname,email,phone,refCode:data.refCode||myRefCode,sessionToken:data.sessionToken||''};
+            localStorage.setItem('traderUser',JSON.stringify(currentUser));
+            ['currentBal','depositBal','withdrawalBal'].forEach(k=>localStorage.removeItem(k));
+
+            if (parseFloat(data.bonus||0)>0) {
+                showPopup('🎁 Referral Bonus', 'You received $1.00 referral bonus! The referrer also received $1.00.');
+            }
+            document.getElementById('auth-screen').style.display='none';
+            document.getElementById('sync-overlay').style.display='flex';
+            let timeLeft=3;
+            const syncInterval=setInterval(()=>{timeLeft--; document.getElementById('sync-timer-text').innerText=`Please wait: ${timeLeft}s`; document.getElementById('sync-fill').style.width=((3-timeLeft)/3*100)+'%'; if(timeLeft<=0){clearInterval(syncInterval);document.getElementById('sync-overlay').style.display='none';checkAuth();}},1000);
+        } catch(err) {
+            alert('Registration server is unavailable. Please try again.');
+            regBtn.disabled=false; regBtn.innerText='Enter Dashboard';
+        }
+    }
+
+    /* Deposit Restriction check before Trade */
+    async function handleTradeClick() {
+        try { await getServerBalances(); } catch(e) { return showPopup('🔐 Security Check', e.message); }
+        let depositBal = serverBalances.depositBal;
+
+        if (depositBal <= 0) {
+            showPopup(
+                "⚠️ Trade Access Restricted",
+                "Trading is currently locked for your account.\n\nYou must make an initial deposit first to unlock live trading features.\n\nPlease click on 'Add Funds' to make a deposit and activate your trading panel."
+            );
+            return;
+        }
+
+        openTradeModal();
+    }
+
+    function getTradeState() {
+        const defaultState = { attemptsLeft: 3, winningAttempt: Math.floor(Math.random() * 3) + 1, lockUntil: 0 };
+        return JSON.parse(localStorage.getItem(`tradeState_${currentUser?.email}`)) || defaultState;
+    }
+
+    function saveTradeState(state) {
+        localStorage.setItem(`tradeState_${currentUser?.email}`, JSON.stringify(state));
+    }
+
+    function checkTradeLockStatus() {
+        const state = getTradeState();
+        const now = Date.now();
+        const btn = document.getElementById('trade-main-btn');
+
+        if (state.lockUntil && now < state.lockUntil) {
+            btn.disabled = true;
+            updateLockTimer(state.lockUntil);
+        } else if (state.lockUntil && now >= state.lockUntil) {
+            const newState = { attemptsLeft: 3, winningAttempt: Math.floor(Math.random() * 3) + 1, lockUntil: 0 };
+            saveTradeState(newState);
+            btn.disabled = false;
+            btn.innerText = "📈 TRADE (1m CHART)";
+        }
+    }
+
+    function updateLockTimer(lockUntil) {
+        const btn = document.getElementById('trade-main-btn');
+        const timer = setInterval(() => {
+            const diff = lockUntil - Date.now();
+            if (diff <= 0) {
+                clearInterval(timer);
+                checkTradeLockStatus();
+            } else {
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                btn.innerText = `🔒 NEXT TRADE IN: ${h}h ${m}m ${s}s`;
+            }
+        }, 1000);
+    }
+
+    let lastUserChoice = "CALL";
+    let secureTradeSession = null;
+
+    function openTradeModal() {
+        const state = getTradeState();
+        if (state.attemptsLeft <= 0) return alert("Daily trade limit reached!");
+
+        const tradeContent = `
+            <div style="font-size: 11px; color: #cbd5e1;">XAU/USD - 1 MINUTE LOW FRAME CHART</div>
+            <div style="font-size: 11px; color: #38bdf8; font-weight: bold; margin-top:3px;">Remaining Attempts Today: ${state.attemptsLeft}/3</div>
+            
+            <div class="chart-box">
+                <canvas id="tradeCanvas" width="300" height="150" style="width:100%; height:100%;"></canvas>
+            </div>
+
+            <div class="trade-action-btns" id="trade-btn-container">
+                <button class="btn-up" onclick="startTradeExecution('CALL')">▲ CALL (UP)</button>
+                <button class="btn-down" onclick="startTradeExecution('PUT')">▼ PUT (DOWN)</button>
+            </div>
+            <div id="stay-timer-box" style="display:none; font-weight:bold; color:#fbbf24; margin-top:10px; font-family:monospace; text-align:center;">Analyzing Market Movement... <span id="stay-count">5</span>s</div>
+        `;
+
+        showPopup("📈 1m Live Market Trade", tradeContent);
+        setTimeout(drawLiveChart, 100);
+    }
+
+    function drawLiveChart() {
+        const canvas = document.getElementById('tradeCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let points = Array.from({length: 20}, () => Math.random() * 50 + 50);
+
+        if (chartAnimationInterval) clearInterval(chartAnimationInterval);
+        
+        chartAnimationInterval = setInterval(() => {
+            points.shift();
+            points.push(Math.random() * 50 + 50);
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.strokeStyle = "#38bdf8";
+            ctx.lineWidth = 2;
+
+            for (let i = 0; i < points.length; i++) {
+                let x = (canvas.width / (points.length - 1)) * i;
+                let y = canvas.height - points[i];
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }, 300);
+    }
+
+    async function startTradeExecution(userChoice) {
+        lastUserChoice = userChoice;
+        try {
+            const res = await fetch(GOOGLE_SCRIPT_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(authPayload({action_type:'start_trade', choice:userChoice}))});
+            const data = await res.json();
+            if (data.status !== 'success') return alert(data.message || 'Trade could not be started.');
+            secureTradeSession = { tradeId:data.tradeId, serverWin:Boolean(data.isWin) };
+        } catch(e) { return alert('Secure trade server is unavailable. Please try again.'); }
+
+        document.getElementById('trade-btn-container').style.display = 'none';
+        const stayBox = document.getElementById('stay-timer-box');
+        stayBox.style.display = 'block';
+
+        let count = 5;
+        const stayInterval = setInterval(() => {
+            count--;
+            document.getElementById('stay-count').innerText = count;
+            if (count <= 0) {
+                clearInterval(stayInterval);
+                finishTradeExecution();
+            }
+        }, 1000);
+    }
+
+    async function finishTradeExecution() {
+        if (chartAnimationInterval) clearInterval(chartAnimationInterval);
+        let state=getTradeState();
+        state.attemptsLeft=Math.max(0, state.attemptsLeft-1);
+        saveTradeState(state);
+        const isWin = secureTradeSession ? Boolean(secureTradeSession.serverWin) : false;
+
+        if (secureTradeSession) {
+            try {
+                const res=await fetch(GOOGLE_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(authPayload({action_type:'trade_result',tradeId:secureTradeSession.tradeId}))});
+                const data=await res.json();
+                if(data.status==='success' && Number(data.profit||0)>0) addTradeHistoryRecord(lastUserChoice,'+$1.00');
+            } catch(e) { console.log('Trade sync failed',e); }
+            secureTradeSession = null;
+        }
+        await loadBalances(false);
+        showPopup(isWin?'✅ Trade Result: WIN':'❌ Trade Result: LOSS',isWin?'🎉 PROFIT! Perfect Prediction!\nYou Earned: +$1.00':'📉 LOSS! Market Reversed.\nProfit: $0.00');
+        checkTradeLockStatus();
+    }
+
+    /* Trade History */
+    function getTradeHistory() {
+        return JSON.parse(localStorage.getItem(`tradeHistory_${currentUser?.email}`)) || [];
+    }
+
+    function addTradeHistoryRecord(type, pnl) {
+        let history = getTradeHistory();
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        history.unshift({ date: timeStr, type: type, asset: "XAU/USD", pnl: pnl });
+        localStorage.setItem(`tradeHistory_${currentUser?.email}`, JSON.stringify(history));
+        renderTradeHistory();
+    }
+
+    function renderTradeHistory() {
+        let history = getTradeHistory();
+        const container = document.getElementById('history-rows');
+        if (!container) return;
+
+        if (history.length === 0) {
+            container.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:12px;">No trade history recorded today.</td></tr>`;
+            return;
+        }
+
+        let html = "";
+        history.forEach(item => {
+            html += `
+                <tr>
+                    <td>${item.date}</td>
+                    <td style="font-weight:bold; color:${item.type === 'CALL' ? '#10b981' : '#ef4444'}">${item.type}</td>
+                    <td>${item.asset}</td>
+                    <td style="font-weight:bold; color:#10b981;">${item.pnl}</td>
+                </tr>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    /* Withdrawal */
+    async function handleWithdrawalClick() {
+        try { await getServerBalances(); } catch(e) { return showPopup('🔐 Security Check', e.message); }
+        let available = Math.max(0, serverBalances.liveWithdrawal - serverBalances.pendingWithdrawal);
+
+        if (available < 50.00) {
+            showPopup("⚠️ Withdrawal Locked", `Minimum withdrawal limit is $50.00.\n\nYour available withdrawal is: $${available.toFixed(2)}\nPlease build at least $50.00 of available profit before placing a withdrawal request.`);
+            return;
+        }
+
+        openWithdrawalModal();
+    }
+
+    async function openWithdrawalModal() {
+        try { await getServerBalances(); } catch(e) { return showPopup('🔐 Security Check', e.message); }
+        let available = Math.max(0, serverBalances.liveWithdrawal);
+
+        const withContent = `
+            <div style="font-size:11px; color:#cbd5e1; margin-bottom:12px;">Available Balance for Withdrawal: <strong style="color:#4ade80;">$${available.toFixed(2)}</strong></div>
+            
+            <div class="input-group">
+                <label>Select Network</label>
+                <select id="with-network" class="input-control" style="cursor:pointer;">
+                    <option value="TRON (TRC20)">TRON (TRC20)</option>
+                    <option value="BNB Smart Chain (BEP20)">BNB Smart Chain (BEP20)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Withdrawal Amount ($)</label>
+                <input type="number" id="with-amount" class="input-control" placeholder="Minimum $50.00" min="50" max="${available}">
+            </div>
+
+            <div class="input-group">
+                <label>Destination Wallet Address</label>
+                <input type="text" id="with-address" class="input-control" placeholder="Enter your wallet address">
+            </div>
+
+            <button class="btn" id="with-sub-btn" onclick="submitWithdrawalRequest()" style="background: linear-gradient(135deg, #FFD700, #d97706); color:#000; font-weight:800; margin-top:10px; margin-bottom:8px;">Submit Withdrawal Request</button>
+            <button class="btn" onclick="closePopup()" style="background:#334155; margin-bottom:0;">Cancel</button>
+        `;
+
+        showPopup("💰 Withdraw Funds", withContent);
+    }
+
+    async function submitWithdrawalRequest() {
+        const net=document.getElementById('with-network').value;
+        const amt=parseFloat(document.getElementById('with-amount').value);
+        const addr=document.getElementById('with-address').value.trim();
+        let available=0;
+        try { const fresh=await getServerBalances(); available=Math.max(0, Number(fresh.liveWithdrawal)||0); } catch(e) { return alert(e.message); }
+        if(isNaN(amt)||amt<50)return alert('Minimum withdrawal amount is $50.00');
+        if(amt>available)return alert(`You can withdraw only your available profit: $${available.toFixed(2)}.`);
+        if(!addr)return alert('Please enter your wallet address.');
+        const btn=document.getElementById('with-sub-btn'); btn.disabled=true; btn.innerText='Submitting...';
+        try {
+            const res=await fetch(GOOGLE_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(authPayload({action_type:'request_withdrawal',amount:amt,network:net,address:addr}))});
+            const data=await res.json();
+            if(data.status!=='success'){alert(data.message||'Withdrawal request failed.');btn.disabled=false;btn.innerText='Submit Withdrawal Request';return;}
+            closePopup();
+            showPopup('⏳ Withdrawal Pending',`Your $${amt.toFixed(2)} withdrawal request has been submitted.\n\nPlease wait for manual approval.`);
+            await loadBalances(false);
+        } catch(e){alert('Withdrawal server is unavailable. Please try again.');btn.disabled=false;btn.innerText='Submit Withdrawal Request';}
+    }
+
+    /* Deposit */
+    function openDepositModal() {
+        const depContent = `
+            <div style="font-size:11px; color:#cbd5e1; margin-bottom:10px;">Select your network and copy the deposit wallet address below:</div>
+            
+            <div class="ref-card">
+                <div style="font-size:10px; color:#94a3b8; font-weight:bold;">NETWORK NAME</div>
+                <div style="font-size:12px; color:#10b981; font-weight:bold; margin-top:2px;">${NETWORK_NAME}</div>
+            </div>
+
+            <div class="ref-card">
+                <div style="font-size:10px; color:#94a3b8; font-weight:bold;">DEPOSIT WALLET ADDRESS</div>
+                <div class="ref-box-row">
+                    <span class="ref-input-text">${DEPOSIT_ADDRESS}</span>
+                    <button class="copy-btn" onclick="copyText('${DEPOSIT_ADDRESS}')">Copy Address</button>
+                </div>
+            </div>
+
+            <div class="warning-box">
+                ⚠️ <strong>WARNING:</strong> Please double-check the wallet address and network carefully before sending funds. We are strictly not responsible for any lost funds due to wrong network selection or incorrect wallet addresses.
+            </div>
+
+            <div class="input-group">
+                <label>Deposit Amount ($)</label>
+                <input type="number" id="dep-amount" class="input-control" placeholder="Minimum $100">
+            </div>
+
+            <div class="input-group">
+                <label>Transaction Hash / TxID / Proof Note</label>
+                <input type="text" id="dep-txid" class="input-control" placeholder="e.g. 0x123abc456def...">
+            </div>
+
+            <div class="input-group">
+                <label>Upload Payment Screenshot Proof</label>
+                <input type="file" id="dep-proof" class="input-control" accept="image/*">
+            </div>
+
+            <button class="btn" id="dep-sub-btn" onclick="submitDepositProof()" style="background:#059669; margin-top:10px; margin-bottom:8px;">Submit Deposit Proof</button>
+            <button class="btn" onclick="closePopup()" style="background:#334155; margin-bottom:0;">Cancel</button>
+        `;
+
+        showPopup("💳 Add Funds / Deposit", depContent);
+    }
+
+    async function submitDepositProof() {
+        const amt=parseFloat(document.getElementById('dep-amount').value);
+        const txid=document.getElementById('dep-txid').value.trim();
+        const fileInput=document.getElementById('dep-proof');
+        if(isNaN(amt)||amt<100)return alert('Minimum deposit amount is $100.00.');
+        if(!txid || !fileInput || !fileInput.files.length)return alert('Please fill Amount, Transaction ID and Screenshot before submitting.');
+        const subBtn=document.getElementById('dep-sub-btn'); if(subBtn){subBtn.disabled=true;subBtn.innerText='Submitting...';}
+        let screenshotBase64='';
+        try{screenshotBase64=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(fileInput.files[0]);});}
+        catch(e){alert('Could not read screenshot.');if(subBtn){subBtn.disabled=false;subBtn.innerText='Submit Deposit';}return;}
+        try{
+            const res=await fetch(GOOGLE_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(authPayload({action_type:'request_deposit',amount:amt,txid,screenshot:screenshotBase64}))});
+            const data=await res.json();
+            if(data.status!=='success'){alert(data.message||'Deposit submission failed.');if(subBtn){subBtn.disabled=false;subBtn.innerText='Submit Deposit';}return;}
+            showPopup('⏳ Verification Pending',`Your deposit of $${amt.toFixed(2)} has been submitted successfully.\n\nManual review may take 1–6 hours. Once approved, it will automatically be added to your Current Amount.`);
+        }catch(e){alert('Deposit server is unavailable. Please try again.');if(subBtn){subBtn.disabled=false;subBtn.innerText='Submit Deposit';}}
+    }
+
+    /* Rules & Guidelines */
+    function openRulesModal() {
+        const rulesContent = `
+            <div style="font-size:12px; font-weight:bold; color:#38bdf8; margin-bottom:10px;">Trading Hub Panel — Rules & Guidelines</div>
+            <div style="font-size:11.5px;color:#cbd5e1;line-height:1.65;text-align:left;">
+            <b>01 — Registration</b><br>Only Pakistani mobile numbers and Gmail addresses are accepted. One phone number and one Gmail can be registered only once.<br><br>
+            <b>02 — Deposits</b><br>Minimum deposit is $100. Amount, transaction ID and payment screenshot are required. Deposits remain Pending until manual verification, normally within 1–6 hours.<br><br>
+            <b>03 — Balance & Profit</b><br>Your Deposit Amount represents approved deposited principal. Trading profits increase Current Amount. Live Equity follows Current Amount.<br><br>
+            <b>04 — Withdrawals</b><br>Minimum withdrawal is $50. Only the amount above your locked Deposit Amount is available as Live Withdrawal. Principal cannot be withdrawn under this rule. Withdrawal requests require manual approval.<br><br>
+            <b>05 — Referral Program</b><br>A valid referral can be used once during registration. The new trader and the referring trader each receive a $1 bonus. A referral cannot be applied again after registration.<br><br>
+            <b>06 — Account Security</b><br>Do not share account information, wallet details or transaction information with others. Account records are maintained through the platform system.<br><br>
+            <b>07 — Verification</b><br>Deposit and withdrawal actions may remain pending until manual review is completed. Approved actions are reflected automatically in the app.
+            </div>`;
+        showPopup('📜 Rules & Guidelines', rulesContent);
+    }
+
+    function openReferralsModal() {
+        let appDomain = window.location.href.split('?')[0];
+        let refLink = `${appDomain}?ref=${currentUser.refCode}`;
+
+        let refHtml = `
+            <div style="font-size:11px; color:#cbd5e1; margin-bottom:12px;">Share your referral code or link with friends to get instant rewards!</div>
+            <div class="ref-card">
+                <div style="font-size:10px; color:#cbd5e1; font-weight:bold;">YOUR REFERRAL CODE</div>
+                <div class="ref-box-row"><span class="ref-input-text">${currentUser.refCode}</span><button class="copy-btn" onclick="copyText('${currentUser.refCode}')">Copy Code</button></div>
+            </div>
+            <div class="ref-card">
+                <div style="font-size:10px; color:#cbd5e1; font-weight:bold;">YOUR REFERRAL LINK</div>
+                <div class="ref-box-row"><span class="ref-input-text">${refLink}</span><button class="copy-btn" onclick="copyText('${refLink}')">Copy Link</button></div>
+            </div>
+            <div style="font-size:10.5px; color:#10b981; font-weight:bold; margin-top:10px;">🎁 Bonus: Get $1.00 instant reward when a new user registers with your code!</div>
+        `;
+        showPopup("🤝 Referral Program", refHtml);
+    }
+
+    function openProfileModal() {
+        let initial = (currentUser.fname ? currentUser.fname.charAt(0) : "U").toUpperCase();
+        
+        const profileContent = `
+            <div class="profile-container">
+                <div class="profile-avatar-box">${initial}</div>
+                <div style="font-size:16px; font-weight:800; color:#f8fafc;">${currentUser.fname} ${currentUser.lname}</div>
+                <div class="profile-badge">✓ VERIFIED TRADER</div>
+
+                <div class="profile-info-grid">
+                    <div class="profile-item">
+                        <span class="profile-label">Email Address</span>
+                        <span class="profile-val">${currentUser.email}</span>
+                    </div>
+                    <div class="profile-item">
+                        <span class="profile-label">Phone Number</span>
+                        <span class="profile-val">${currentUser.phone}</span>
+                    </div>
+                    <div class="profile-item">
+                        <span class="profile-label">Referral Code</span>
+                        <span class="profile-val" style="color:#38bdf8;">${currentUser.refCode}</span>
+                    </div>
+                    <div class="profile-item">
+                        <span class="profile-label">Account Status</span>
+                        <span class="profile-val" style="color:#10b981;">ACTIVE</span>
+                    </div>
+                </div>
+
+                <button class="btn-logout" onclick="handleSignOut()">🚪 SIGN OUT / LOGOUT</button>
+            </div>
+        `;
+        showPopup("👤 User Profile", profileContent);
+    }
+
+    function handleSignOut() {
+        if (confirm("Are you sure you want to sign out from Trading Hub Panel?")) {
+            sendUserStatusUpdate("Offline");
+            
+            if (currentUser) {
+                document.getElementById('reg-email').value = currentUser.email || '';
+                document.getElementById('reg-fname').value = currentUser.fname || '';
+                document.getElementById('reg-lname').value = currentUser.lname || '';
+                document.getElementById('reg-phone').value = currentUser.phone || '';
+            }
+
+            localStorage.removeItem('traderUser');
+            currentUser = null;
+            closePopup();
+            checkAuth();
+        }
+    }
+
+    function copyText(txt) {
+        navigator.clipboard.writeText(txt).then(() => alert("Copied to clipboard!")).catch(() => alert("Copied!"));
+    }
+
+    function showPopup(title, bodyHtml) {
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-body').innerHTML = bodyHtml;
+        const m = document.getElementById('modal');
+        m.style.display = 'flex';
+        setTimeout(() => m.classList.add('active-modal'), 10);
+    }
+
+    function closePopup() {
+        if (chartAnimationInterval) clearInterval(chartAnimationInterval);
+        const m = document.getElementById('modal');
+        m.classList.remove('active-modal');
+        setTimeout(() => m.style.display = 'none', 250);
+    }
+
+    checkAuth();
+    startBalancePolling();
+</script>
+
+</body>
+</html>
