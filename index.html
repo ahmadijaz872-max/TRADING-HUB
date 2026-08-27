@@ -180,6 +180,33 @@ tbody tr{background:rgba(255,255,255,.032)!important}
 ::selection{background:rgba(215,179,106,.28);color:#fff}
 </style>
 
+
+<style id="certificate-program-style">
+.certificate-program-card{
+    margin-top:14px;padding:15px 16px;border-radius:18px;
+    display:flex;align-items:center;gap:12px;cursor:pointer;
+    background:linear-gradient(135deg,rgba(215,179,106,.10),rgba(255,255,255,.035));
+    border:1px solid rgba(215,179,106,.24);
+    box-shadow:0 18px 45px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.04);
+    position:relative;overflow:hidden;
+}
+.certificate-program-card:after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(110deg,transparent 20%,rgba(255,255,255,.06) 50%,transparent 80%);
+    transform:translateX(-100%);transition:transform .7s ease;
+}
+.certificate-program-card:hover:after{transform:translateX(100%)}
+.certificate-lock-icon{
+    width:42px;height:42px;display:grid;place-items:center;border-radius:13px;
+    background:rgba(215,179,106,.10);border:1px solid rgba(215,179,106,.20);
+    font-size:19px;flex:0 0 auto;
+}
+.certificate-program-copy{min-width:0;flex:1}
+.certificate-program-title{font-size:12px;font-weight:900;letter-spacing:.08em;color:#f3dda7}
+.certificate-program-sub{font-size:10px;line-height:1.45;color:#999daa;margin-top:4px}
+.certificate-arrow{font-size:26px;color:#d7b36a;font-weight:300}
+</style>
+
 </head>
 <body>
 
@@ -271,6 +298,16 @@ tbody tr{background:rgba(255,255,255,.032)!important}
                 <tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:12px;">No trade history recorded today.</td></tr>
             </tbody>
         </table>
+    </div>
+
+    <!-- Certificate Program — locked until $50 withdrawal threshold is completed -->
+    <div id="certificate-program-card" class="certificate-program-card" onclick="openCertificateProgram()">
+        <div class="certificate-lock-icon">🔒</div>
+        <div class="certificate-program-copy">
+            <div class="certificate-program-title">CERTIFICATE PROGRAM</div>
+            <div class="certificate-program-sub">Unlock when your $50 withdrawal amount is completed</div>
+        </div>
+        <div class="certificate-arrow">›</div>
     </div>
 </div>
 
@@ -382,6 +419,7 @@ tbody tr{background:rgba(255,255,255,.032)!important}
             document.getElementById('bottom-navbar').style.display = 'flex';
             if (!currentUser.refCode) currentUser.refCode = generateReferralCode(currentUser.email);
             loadBalances();
+            refreshTradeHistory();
             renderTradeHistory();
             checkTradeLockStatus();
             sendUserStatusUpdate("Online");
@@ -429,6 +467,8 @@ tbody tr{background:rgba(255,255,255,.032)!important}
                 }
                 if (lastPendingWithdrawal > 0 && parseFloat(data.withdrawalBal) >= lastPendingWithdrawal) {
                     showPopup('✅ Withdrawal Approved', 'Your withdrawal has been approved and your balance has been updated.');
+                    tradeHistoryCache = Array.isArray(data.tradeHistory) ? data.tradeHistory : [];
+                    renderTradeHistory();
                 }
             }
             lastApprovedDeposit = parseFloat(data.depositBal) || 0;
@@ -654,18 +694,31 @@ tbody tr{background:rgba(255,255,255,.032)!important}
         }, 300);
     }
 
-    async function startTradeExecution(userChoice) {
-        lastUserChoice = userChoice;
-        try {
-            const res = await fetch(GOOGLE_SCRIPT_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(authPayload({action_type:'start_trade', choice:userChoice}))});
-            const data = await res.json();
-            if (data.status !== 'success') return alert(data.message || 'Trade could not be started.');
-            secureTradeSession = { tradeId:data.tradeId, serverWin:Boolean(data.isWin) };
-        } catch(e) { return alert('Secure trade server is unavailable. Please try again.'); }
+    let secureTradePromise = null;
+    let tradeUiBusy = false;
 
+    function startTradeExecution(userChoice) {
+        if (tradeUiBusy) return;
+        tradeUiBusy = true;
+        lastUserChoice = userChoice;
+
+        // Instant UI response — do not make the button wait for the network.
         document.getElementById('trade-btn-container').style.display = 'none';
         const stayBox = document.getElementById('stay-timer-box');
         stayBox.style.display = 'block';
+        document.getElementById('stay-count').innerText = '5';
+
+        secureTradePromise = fetch(GOOGLE_SCRIPT_URL, {
+            method:'POST',
+            headers:{'Content-Type':'text/plain;charset=utf-8'},
+            body:JSON.stringify(authPayload({action_type:'start_trade', choice:userChoice}))
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status !== 'success') throw new Error(data.message || 'Trade could not be started.');
+            secureTradeSession = { tradeId:data.tradeId, serverWin:Boolean(data.isWin) };
+            return data;
+        });
 
         let count = 5;
         const stayInterval = setInterval(() => {
@@ -680,6 +733,19 @@ tbody tr{background:rgba(255,255,255,.032)!important}
 
     async function finishTradeExecution() {
         if (chartAnimationInterval) clearInterval(chartAnimationInterval);
+
+        // The secure trade request may still be in flight. Wait for it here,
+        // not on the button click, so the interface remains responsive.
+        try {
+            if (secureTradePromise) await secureTradePromise;
+        } catch(e) {
+            tradeUiBusy = false;
+            secureTradePromise = null;
+            document.getElementById('trade-btn-container').style.display = 'flex';
+            document.getElementById('stay-timer-box').style.display = 'none';
+            return showPopup('⚠️ Trade Error', e.message || 'Secure trade server is unavailable. Please try again.');
+        }
+
         let state=getTradeState();
         state.attemptsLeft=Math.max(0, state.attemptsLeft-1);
         saveTradeState(state);
@@ -694,51 +760,81 @@ tbody tr{background:rgba(255,255,255,.032)!important}
             secureTradeSession = null;
         }
         await loadBalances(false);
+        await refreshTradeHistory();
         showPopup(isWin?'✅ Trade Result: WIN':'❌ Trade Result: LOSS',isWin?'🎉 PROFIT! Perfect Prediction!\nYou Earned: +$1.00':'📉 LOSS! Market Reversed.\nProfit: $0.00');
         checkTradeLockStatus();
+        tradeUiBusy = false;
+        secureTradePromise = null;
     }
 
-    /* Trade History */
+    /* Server-authoritative Trade History */
+    let tradeHistoryCache = [];
+
     function getTradeHistory() {
-        return JSON.parse(localStorage.getItem(`tradeHistory_${currentUser?.email}`)) || [];
+        return Array.isArray(tradeHistoryCache) ? tradeHistoryCache : [];
     }
 
     function addTradeHistoryRecord(type, pnl) {
-        let history = getTradeHistory();
-        const now = new Date();
-        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        history.unshift({ date: timeStr, type: type, asset: "XAU/USD", pnl: pnl });
-        localStorage.setItem(`tradeHistory_${currentUser?.email}`, JSON.stringify(history));
-        renderTradeHistory();
+        // The server is the source of truth. Refresh after completion rather
+        // than writing financial history into localStorage.
+        refreshTradeHistory();
     }
 
     function renderTradeHistory() {
-        let history = getTradeHistory();
+        const history = getTradeHistory();
         const container = document.getElementById('history-rows');
         if (!container) return;
 
         if (history.length === 0) {
-            container.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:12px;">No trade history recorded today.</td></tr>`;
+            container.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:12px;">No trade history in the current withdrawal cycle.</td></tr>`;
             return;
         }
 
-        let html = "";
-        history.forEach(item => {
-            html += `
+        container.innerHTML = history.map(item => {
+            const pnl = Number(item.pnl || 0);
+            const pnlText = pnl > 0 ? `+$${pnl.toFixed(2)}` : '$0.00';
+            const typeColor = item.type === 'CALL' ? '#45dfa0' : '#ff6977';
+            return `
                 <tr>
-                    <td>${item.date}</td>
-                    <td style="font-weight:bold; color:${item.type === 'CALL' ? '#10b981' : '#ef4444'}">${item.type}</td>
-                    <td>${item.asset}</td>
-                    <td style="font-weight:bold; color:#10b981;">${item.pnl}</td>
+                    <td>${item.date || '--'}</td>
+                    <td style="font-weight:bold;color:${typeColor}">${item.type || '--'}</td>
+                    <td>${item.asset || 'XAU/USD'}</td>
+                    <td style="font-weight:bold;color:${pnl > 0 ? '#45dfa0' : '#999daa'}">${pnlText}</td>
                 </tr>
             `;
-        });
-        container.innerHTML = html;
+        }).join('');
+    }
+
+    async function refreshTradeHistory() {
+        if (!currentUser?.email || !currentUser?.sessionToken) return;
+        try {
+            const res = await fetch(GOOGLE_SCRIPT_URL,{
+                method:'POST',
+                headers:{'Content-Type':'text/plain;charset=utf-8'},
+                body:JSON.stringify(authPayload({action_type:'fetch_user_data'}))
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                tradeHistoryCache = Array.isArray(data.tradeHistory) ? data.tradeHistory : [];
+                renderTradeHistory();
+            }
+        } catch(e) {
+            console.log('Trade history sync:',e);
+        }
+    }
+
+    function openCertificateProgram() {
+        showPopup(
+            "✨ COMING SOON",
+            "Your Certificate Program is coming soon.\n\nComplete a $50.00 withdrawal amount to unlock your certificate eligibility.\n\nOnce your withdrawal requirement is completed and the certificate program is launched, your certificate will become available.\n\n🔒 CERTIFICATE STATUS: LOCKED"
+        );
     }
 
     /* Withdrawal */
     async function handleWithdrawalClick() {
+        showPopup('🔐 Secure Balance Check', '<div style="text-align:center;padding:8px 0;">Checking your available withdrawal balance securely...<br><span style="font-size:10px;color:#999daa;">Please wait a moment.</span></div>');
         try { await getServerBalances(); } catch(e) { return showPopup('🔐 Security Check', e.message); }
+        closePopup();
         let available = Math.max(0, serverBalances.liveWithdrawal - serverBalances.pendingWithdrawal);
 
         if (available < 50.00) {
@@ -746,12 +842,15 @@ tbody tr{background:rgba(255,255,255,.032)!important}
             return;
         }
 
-        openWithdrawalModal();
+        openWithdrawalModal(available);
     }
 
-    async function openWithdrawalModal() {
-        try { await getServerBalances(); } catch(e) { return showPopup('🔐 Security Check', e.message); }
-        let available = Math.max(0, serverBalances.liveWithdrawal);
+    async function openWithdrawalModal(availableOverride) {
+        let available = Number(availableOverride);
+        if (!Number.isFinite(available)) {
+            try { await getServerBalances(); } catch(e) { return showPopup('🔐 Security Check', e.message); }
+            available = Math.max(0, serverBalances.liveWithdrawal);
+        }
 
         const withContent = `
             <div style="font-size:11px; color:#cbd5e1; margin-bottom:12px;">Available Balance for Withdrawal: <strong style="color:#4ade80;">$${available.toFixed(2)}</strong></div>
