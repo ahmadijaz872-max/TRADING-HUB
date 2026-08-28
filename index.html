@@ -207,11 +207,19 @@ tbody tr{background:rgba(255,255,255,.032)!important}
 .certificate-arrow{font-size:26px;color:#d7b36a;font-weight:300}
 </style>
 
+
+<style id="final-luxury-fixes">
+.history-table td:first-child{color:#fff!important;font-weight:800!important;text-shadow:0 0 8px rgba(255,255,255,.14)}
+.history-table td{color:#fff!important}
+.referral-program-card{margin-bottom:10px;border-color:rgba(215,179,106,.38);background:linear-gradient(135deg,rgba(215,179,106,.15),rgba(255,255,255,.035))}
+.luxury-modal-card{border:1px solid rgba(215,179,106,.42)!important;box-shadow:0 35px 100px rgba(0,0,0,.7),0 0 35px rgba(215,179,106,.08)!important}
+.article-list{display:grid;gap:10px}.article-item{padding:14px;border:1px solid rgba(215,179,106,.18);border-radius:14px;background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.018));cursor:pointer}.article-item strong{color:#f3dda7;letter-spacing:.04em}.article-body{font-size:11.5px;line-height:1.72;color:#d7dce5;text-align:left}.article-body h4{color:#f3dda7;margin:0 0 8px;font-size:14px}.popup-check{display:flex;align-items:center;gap:8px;margin:14px 0;color:#cbd5e1;font-size:11px}.popup-check input{width:16px;height:16px;accent-color:#d7b36a}
+</style>
 </head>
 <body>
 
 <div class="top-ticker">
-    <div class="ticker-text">🔥 WELCOME TO Trading Hub PANEL | ✨ CERTIFICATE PROGRAM: COMING SOON — LAUNCH WILL BE ANNOUNCED SHORTLY ✨ | 🚀 SPECIAL REFERRAL OFFER</div>
+    <div class="ticker-text">🔥 WELCOME TO TRADING HUB | ✦ CERTIFICATE PROGRAM — COMING SOON | ✦ REFERRAL PROGRAM AVAILABLE | ✦ SECURE ACCOUNT ACCESS</div>
 </div>
 
 <div class="bg-particles" id="stars-container"></div>
@@ -239,17 +247,17 @@ tbody tr{background:rgba(255,255,255,.032)!important}
         <div class="input-group"><label>First Name</label><input type="text" id="reg-fname" class="input-control" placeholder="e.g. John"></div>
         <div class="input-group"><label>Last Name</label><input type="text" id="reg-lname" class="input-control" placeholder="e.g. Max"></div>
         <div class="input-group"><label>Email</label><input type="email" id="reg-email" class="input-control" placeholder="name@gmail.com"></div>
-        <div class="input-group"><label>Mobile Number</label><input type="tel" id="reg-phone" class="input-control" placeholder="03001234567"></div>
-        <div class="input-group"><label>Referral Code (Optional)</label><input type="text" id="reg-refcode" class="input-control" placeholder="e.g. REF123456"></div>
+        <div class="input-group"><label>Phone Number</label><input type="tel" id="reg-phone" class="input-control" placeholder="03001234567"></div>
+        <input type="hidden" id="reg-refcode" value="">
         <button class="btn" id="reg-btn" onclick="handleRegistration()" style="margin-top:10px;">CREATE ACCOUNT</button>
     </div>
 
     <div id="signin-panel" style="display:none;">
         <div style="font-size:15px;font-weight:800;color:#f8fafc;margin-bottom:14px;">Welcome Back</div>
         <div class="input-group"><label>Email</label><input type="email" id="login-email" class="input-control" placeholder="name@gmail.com" autocomplete="email"></div>
-        <div class="input-group"><label>Mobile Number</label><input type="tel" id="login-phone" class="input-control" placeholder="03001234567" autocomplete="tel"></div>
+        <div class="input-group"><label>Phone Number</label><input type="tel" id="login-phone" class="input-control" placeholder="03001234567" autocomplete="tel"></div>
         <button class="btn" id="login-btn" onclick="handleLogin()" style="margin-top:10px;">SIGN IN</button>
-        <div style="font-size:10px;color:#64748b;line-height:1.5;margin-top:2px;">Use the same email and mobile number you used when registering.</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.5;margin-top:2px;">Use the same email and phone number you used when registering.</div>
     </div>
 </div>
 
@@ -300,21 +308,30 @@ tbody tr{background:rgba(255,255,255,.032)!important}
         </table>
     </div>
 
+    <div id="referral-program-card" class="certificate-program-card referral-program-card">
+        <div class="certificate-lock-icon" style="font-size:18px;">🤝</div>
+        <div class="certificate-program-copy">
+            <div class="certificate-program-title">SLIDE TO SEE YOUR REFERRAL PROGRAM</div>
+            <div class="certificate-program-sub">Drag the control fully right to open your referral program.</div>
+            <input class="luxury-slider" id="referral-slider" type="range" min="0" max="100" value="0" aria-label="Slide to see your referral program" oninput="handleLuxurySlider(this,'referral')">
+        </div>
+    </div>
+
     <!-- Certificate Program — locked until $50 withdrawal threshold is completed -->
-    <div id="certificate-program-card" class="certificate-program-card" onclick="openCertificateProgram()">
+    <div id="certificate-program-card" class="certificate-program-card">
         <div class="certificate-lock-icon">🔒</div>
         <div class="certificate-program-copy">
             <div class="certificate-program-title">SLIDE TO UNLOCK CERTIFICATE</div>
-            <div class="certificate-program-sub">Certificate Program • Coming Soon • Tap to view eligibility</div>
+            <div class="certificate-program-sub">Drag the control fully right to view the certificate program.</div>
+            <input class="luxury-slider" id="certificate-slider" type="range" min="0" max="100" value="0" aria-label="Slide to unlock certificate" oninput="handleLuxurySlider(this,'certificate')">
         </div>
-        <div class="certificate-arrow">›</div>
     </div>
 </div>
 
 <!-- Bottom Navigation Bar -->
 <div class="bottom-nav" id="bottom-navbar">
-    <div class="nav-tab active" onclick="openReferralsModal()"><span style="font-size:16px;">🤝</span><span>Referrals</span></div>
     <div class="nav-tab" onclick="openDepositModal()"><span style="font-size:16px;">💳</span><span>Deposit</span></div>
+    <div class="nav-tab active" onclick="openArticlesModal()"><span style="font-size:16px;">📚</span><span>Articles</span></div>
     <div class="nav-tab" onclick="openRulesModal()"><span style="font-size:16px;">📜</span><span>Rules</span></div>
     <div class="nav-tab" onclick="openProfileModal()"><span style="font-size:16px;">👤</span><span>Profile</span></div>
 </div>
@@ -364,6 +381,7 @@ tbody tr{background:rgba(255,255,255,.032)!important}
         const timeElem = document.getElementById('live-datetime');
         if (timeElem) timeElem.innerText = `${now.toLocaleTimeString()} | ${now.toLocaleDateString('en-GB')}`;
     }
+    updateLiveTime();
     setInterval(updateLiveTime, 1000);
 
     /* Real-Time Gold Price Fetching */
@@ -428,6 +446,7 @@ tbody tr{background:rgba(255,255,255,.032)!important}
             renderTradeHistory();
             checkTradeLockStatus();
             sendUserStatusUpdate("Online");
+            setTimeout(()=>showReferralWelcomePopup('signin'),450);
         } else {
             document.getElementById('auth-screen').style.display = 'block';
             document.getElementById('main-dashboard').style.display = 'none';
@@ -517,8 +536,8 @@ tbody tr{background:rgba(255,255,255,.032)!important}
     async function handleLogin() {
         const email = document.getElementById('login-email').value.trim().toLowerCase();
         const phone = document.getElementById('login-phone').value.trim();
-        if (!/^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@gmail\.com$/i.test(email)) return alert('Only Gmail addresses are allowed.');
-        if (!validatePakistaniPhone(phone)) return alert('Only valid Pakistani mobile numbers are allowed.');
+        if (!/^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@gmail\.com$/i.test(email)) return alert('Please enter a valid email address.');
+        if (!validatePakistaniPhone(phone)) return alert('Please enter a valid phone number.');
 
         const btn=document.getElementById('login-btn');
         btn.disabled=true; btn.innerText='VERIFYING...';
@@ -556,11 +575,11 @@ tbody tr{background:rgba(255,255,255,.032)!important}
         const lname = document.getElementById('reg-lname').value.trim();
         const email = document.getElementById('reg-email').value.trim().toLowerCase();
         const phone = document.getElementById('reg-phone').value.trim();
-        const refBy = document.getElementById('reg-refcode').value.trim().toUpperCase();
+        const refBy = (new URLSearchParams(window.location.search).get('ref') || document.getElementById('reg-refcode').value).trim().toUpperCase();
 
         if (!fname || !lname) return alert('Please enter your first and last name.');
-        if (!/^[^@\s]+@gmail\.com$/i.test(email)) return alert('Only Gmail addresses are allowed.');
-        if (!validatePakistaniPhone(phone)) return alert('Only valid Pakistani mobile numbers are allowed.');
+        if (!/^[^@\s]+@gmail\.com$/i.test(email)) return alert('Please enter a valid email address.');
+        if (!validatePakistaniPhone(phone)) return alert('Please enter a valid phone number.');
 
         const regBtn = document.getElementById('reg-btn');
         regBtn.disabled = true; regBtn.innerText = 'Verifying...';
@@ -836,10 +855,23 @@ tbody tr{background:rgba(255,255,255,.032)!important}
         }
     }
 
+    function handleLuxurySlider(slider, type) {
+        if (Number(slider.value) < 96) return;
+        slider.value = 100;
+        if (type === 'referral') openReferralsModal();
+        if (type === 'certificate') openCertificateProgram();
+        setTimeout(()=>{slider.value=0;},500);
+    }
+
     function openCertificateProgram() {
         showPopup(
-            "✨ COMING SOON",
-            "Your Certificate Program is coming soon.\n\nComplete a $50.00 withdrawal amount to unlock your certificate eligibility.\n\nOnce your withdrawal requirement is completed and the certificate program is launched, your certificate will become available.\n\n🔒 CERTIFICATE STATUS: LOCKED"
+            "✦ CERTIFICATE PROGRAM",
+            `<div class="luxury-modal-card" style="padding:18px;border-radius:16px;text-align:center;">
+                <div style="font-size:11px;letter-spacing:.16em;color:#d7b36a;font-weight:900;">CERTIFICATE PROGRAM</div>
+                <div style="font-size:22px;color:#fff;font-weight:900;margin:10px 0;">COMING SOON</div>
+                <div style="font-size:11.5px;color:#cbd5e1;line-height:1.7;">The certificate feature is currently being prepared and will be officially launched when the program is ready. Eligibility and release details will be displayed here at launch.</div>
+                <div style="margin-top:14px;padding:10px;border-radius:12px;background:rgba(215,179,106,.08);border:1px solid rgba(215,179,106,.22);color:#f3dda7;font-weight:800;font-size:11px;">🔒 CERTIFICATE STATUS: LOCKED</div>
+            </div>`
         );
     }
 
@@ -980,7 +1012,7 @@ tbody tr{background:rgba(255,255,255,.032)!important}
         const rulesContent = `
             <div style="font-size:12px; font-weight:bold; color:#38bdf8; margin-bottom:10px;">Trading Hub Panel — Rules & Guidelines</div>
             <div style="font-size:11.5px;color:#cbd5e1;line-height:1.65;text-align:left;">
-            <b>01 — Registration</b><br>Only Pakistani mobile numbers and Gmail addresses are accepted. One phone number and one Gmail can be registered only once.<br><br>
+            <b>01 — Registration</b><br>Registration uses a verified email address and phone number. One phone number and one email can be registered only once.<br><br>
             <b>02 — Deposits</b><br>Minimum deposit is $100. Amount, transaction ID and payment screenshot are required. Deposits remain Pending until manual verification, normally within 1–6 hours.<br><br>
             <b>03 — Balance & Profit</b><br>Your Deposit Amount represents approved deposited principal. Trading profits increase Current Amount. Live Equity follows Current Amount.<br><br>
             <b>04 — Withdrawals</b><br>Minimum withdrawal is $50. Only the amount above your locked Deposit Amount is available as Live Withdrawal. Principal cannot be withdrawn under this rule. Withdrawal requests require manual approval.<br><br>
@@ -994,20 +1026,57 @@ tbody tr{background:rgba(255,255,255,.032)!important}
     function openReferralsModal() {
         let appDomain = window.location.href.split('?')[0];
         let refLink = `${appDomain}?ref=${currentUser.refCode}`;
-
         let refHtml = `
-            <div style="font-size:11px; color:#cbd5e1; margin-bottom:12px;">Share your referral code or link with friends to get instant rewards!</div>
-            <div class="ref-card">
-                <div style="font-size:10px; color:#cbd5e1; font-weight:bold;">YOUR REFERRAL CODE</div>
-                <div class="ref-box-row"><span class="ref-input-text">${currentUser.refCode}</span><button class="copy-btn" onclick="copyText('${currentUser.refCode}')">Copy Code</button></div>
-            </div>
-            <div class="ref-card">
-                <div style="font-size:10px; color:#cbd5e1; font-weight:bold;">YOUR REFERRAL LINK</div>
-                <div class="ref-box-row"><span class="ref-input-text">${refLink}</span><button class="copy-btn" onclick="copyText('${refLink}')">Copy Link</button></div>
-            </div>
-            <div style="font-size:10.5px; color:#10b981; font-weight:bold; margin-top:10px;">🎁 Bonus: Get $1.00 instant reward when a new user registers with your code!</div>
-        `;
-        showPopup("🤝 Referral Program", refHtml);
+            <div class="luxury-modal-card" style="padding:16px;border-radius:16px;">
+                <div style="text-align:center;font-size:18px;font-weight:900;color:#f3dda7;">Referral Program</div>
+                <div style="text-align:center;font-size:11px;color:#aeb6c3;line-height:1.6;margin:8px 0 14px;">Share your referral link with people you know and review the applicable reward terms before participating.</div>
+                <div class="ref-card"><div style="font-size:10px;color:#cbd5e1;font-weight:bold;">YOUR REFERRAL CODE</div><div class="ref-box-row"><span class="ref-input-text">${currentUser.refCode}</span><button class="copy-btn" onclick="copyText('${currentUser.refCode}')">Copy</button></div></div>
+                <div class="ref-card"><div style="font-size:10px;color:#cbd5e1;font-weight:bold;">YOUR REFERRAL LINK</div><div class="ref-box-row"><span class="ref-input-text">${refLink}</span><button class="copy-btn" onclick="copyText('${refLink}')">Copy</button></div></div>
+                <div style="font-size:10.5px;color:#cbd5e1;line-height:1.6;margin-top:10px;">Referral rewards, if offered, are subject to the program terms and eligibility requirements published by the platform.</div>
+            </div>`;
+        showPopup("✦ REFERRAL PROGRAM", refHtml);
+    }
+
+    
+    function openArticlesModal() {
+        const articles = [
+            ['About Us','A concise overview of the platform, its interface, account structure, market tools and commitment to transparent user information.'],
+            ['How to Use the Platform','Learn how to create an account, review your dashboard, understand balances, use the market interface, submit deposits and monitor withdrawal requests.'],
+            ['Responsible Trading Behaviour','Trading and investing involve uncertainty. Users should avoid impulsive decisions, understand the risks, never commit funds they cannot afford to lose, and review all applicable terms before participating.'],
+            ['Account Security','Protect login credentials, wallet information and transaction records. Use your own account, verify destinations before sending funds, and contact platform support when something appears unusual.'],
+            ['Referral Program','The referral feature is designed for sharing the platform with eligible users. Any referral reward is subject to the published terms, eligibility conditions and applicable limits.']
+        ];
+        const html = `<div class="article-list">${articles.map((a,i)=>`<div class="article-item" onclick="openArticle(${i})"><strong>${String(i+1).padStart(2,'0')} — ${a[0]}</strong><div style="font-size:10px;color:#8f98a7;margin-top:4px;">Tap to read the full article ›</div></div>`).join('')}</div>`;
+        showPopup('📚 ARTICLES',html);
+    }
+
+    function openArticle(index) {
+        const bodies = [
+            ['About Us',`Trading Hub is presented as a digital trading interface designed to give users a structured environment for account management, market observation and transaction tracking. The platform brings together live market information, account balances, trade history and transaction workflows in a single dashboard. Our objective is to maintain a professional user experience in which important account information is clearly organized, security controls are respected and platform features are introduced in a measured and transparent manner. Any historical, financial or performance statement displayed by the platform should be supported by records that users can independently verify.`],
+            ['How to Use the Platform',`Begin by creating an account with the information requested by the platform. After successful verification, the dashboard provides access to the current account figures, market panel, trade history, deposit workflow and withdrawal workflow. Users should review every transaction carefully, confirm network and destination details before sending funds, and retain transaction references for their records. The platform may use manual verification for certain financial actions; therefore, a submitted request should not be treated as approved until its status is explicitly confirmed in the account.`],
+            ['Responsible Trading Behaviour',`Professional participation requires disciplined decision-making rather than impulsive or emotionally driven activity. Market movements can be uncertain and historical outcomes do not guarantee future performance. Users should establish their own risk limits, understand the possibility of loss, avoid chasing losses and refrain from using borrowed money unless they fully understand the consequences. The platform is intended to present trading and investment tools, not to encourage reckless or gambling-style behaviour. Where a product or feature carries financial risk, users should review the applicable terms and risk disclosures before proceeding.`],
+            ['Account Security',`Account security begins with protecting credentials, transaction references and wallet information. Never share authentication details with another person and always verify the destination address and network before submitting a transaction. Keep screenshots and transaction hashes for your own records. If an unfamiliar activity appears in an account, stop further transactions and use the platform's official support process. Security controls are most effective when users combine careful account practices with the platform's verification procedures.`],
+            ['Referral Program',`The referral program allows eligible users to share a platform referral link or code. Where a reward is offered, the amount, eligibility requirements and timing should be determined by the current published program terms rather than by assumptions or informal promises. Users should share referral information responsibly and should not make representations about guaranteed profits, guaranteed withdrawals or investment outcomes. Any promotional reward remains subject to the platform's applicable conditions and verification process.`]
+        ];
+        showPopup('📖 '+bodies[index][0], `<div class="article-body"><h4>${bodies[index][0]}</h4><p>${bodies[index][1]}</p></div>`);
+    }
+
+    function showReferralWelcomePopup(source) {
+        if (localStorage.getItem('hideReferralWelcome') === '1') return;
+        const body = `<div class="luxury-modal-card" style="padding:18px;border-radius:18px;text-align:center;">
+            <div style="font-size:11px;letter-spacing:.16em;color:#d7b36a;font-weight:900;">WELCOME</div>
+            <div style="font-size:21px;font-weight:900;color:#fff;margin:8px 0;">Referral Program</div>
+            <div style="font-size:11.5px;line-height:1.7;color:#cbd5e1;">Share your referral link with eligible users. Any available referral reward is governed by the current program terms and eligibility requirements.</div>
+            <div class="popup-check"><input type="checkbox" id="dont-show-referral"><label for="dont-show-referral">Don't show this again</label></div>
+            <button class="btn" onclick="saveReferralWelcomePreference()" style="margin-bottom:0;">CONTINUE</button>
+        </div>`;
+        showPopup(source === 'signup' ? '✦ ACCOUNT CREATED' : '✦ WELCOME BACK', body);
+    }
+
+    function saveReferralWelcomePreference(){
+        const cb=document.getElementById('dont-show-referral');
+        if(cb && cb.checked) localStorage.setItem('hideReferralWelcome','1');
+        closePopup();
     }
 
     function openProfileModal() {
