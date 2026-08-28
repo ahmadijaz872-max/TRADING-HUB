@@ -209,8 +209,8 @@ tbody tr{background:rgba(255,255,255,.032)!important}
 
 
 <style id="final-luxury-fixes">
-.history-table td:first-child{color:#fff!important;font-weight:800!important;text-shadow:0 0 8px rgba(255,255,255,.14)}
-.history-table td{color:#fff!important}
+.history-table td:first-child{color:#d7b36a!important;font-weight:800!important;text-shadow:0 0 8px rgba(215,179,106,.18);white-space:nowrap}
+.history-table td{color:#fff!important}.history-table td:first-child{color:#d7b36a!important}
 .referral-program-card{margin-bottom:10px;border-color:rgba(215,179,106,.38);background:linear-gradient(135deg,rgba(215,179,106,.15),rgba(255,255,255,.035))}
 .luxury-modal-card{border:1px solid rgba(215,179,106,.42)!important;box-shadow:0 35px 100px rgba(0,0,0,.7),0 0 35px rgba(215,179,106,.08)!important}
 .article-list{display:grid;gap:10px}.article-item{padding:14px;border:1px solid rgba(215,179,106,.18);border-radius:14px;background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.018));cursor:pointer}.article-item strong{color:#f3dda7;letter-spacing:.04em}.article-body{font-size:11.5px;line-height:1.72;color:#d7dce5;text-align:left}.article-body h4{color:#f3dda7;margin:0 0 8px;font-size:14px}.popup-check{display:flex;align-items:center;gap:8px;margin:14px 0;color:#cbd5e1;font-size:11px}.popup-check input{width:16px;height:16px;accent-color:#d7b36a}
@@ -808,8 +808,9 @@ tbody tr{background:rgba(255,255,255,.032)!important}
         const rawDate = String(date || '').trim();
         const rawTime = String(time || '').trim();
         if (!rawDate && !rawTime) return '--';
-        // Server dates are dd/MM/yyyy; keep them intact and append time.
-        return rawDate ? `${rawDate}${rawTime ? ' • ' + rawTime : ''}` : rawTime;
+        // Keep the history display intentionally compact: date + time only.
+        const cleanTime = rawTime.replace(/\s+/g,' ').trim();
+        return rawDate ? `${rawDate}${cleanTime ? ' • ' + cleanTime : ''}` : cleanTime;
     }
 
     function renderTradeHistory() {
@@ -1058,7 +1059,11 @@ tbody tr{background:rgba(255,255,255,.032)!important}
             ['Account Security',`Account security begins with protecting credentials, transaction references and wallet information. Never share authentication details with another person and always verify the destination address and network before submitting a transaction. Keep screenshots and transaction hashes for your own records. If an unfamiliar activity appears in an account, stop further transactions and use the platform's official support process. Security controls are most effective when users combine careful account practices with the platform's verification procedures.`],
             ['Referral Program',`The referral program allows eligible users to share a platform referral link or code. Where a reward is offered, the amount, eligibility requirements and timing should be determined by the current published program terms rather than by assumptions or informal promises. Users should share referral information responsibly and should not make representations about guaranteed profits, guaranteed withdrawals or investment outcomes. Any promotional reward remains subject to the platform's applicable conditions and verification process.`]
         ];
-        showPopup('📖 '+bodies[index][0], `<div class="article-body"><h4>${bodies[index][0]}</h4><p>${bodies[index][1]}</p></div>`);
+        showPopup('📖 '+bodies[index][0], `<div class="article-body"><h4>${bodies[index][0]}</h4><p>${bodies[index][1]}</p>
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn" onclick="openArticlesModal()" style="margin:0;flex:1;background:linear-gradient(135deg,#2a2f3a,#171b24);border:1px solid rgba(215,179,106,.35);color:#f3dda7;">← BACK TO ARTICLES</button>
+            </div>
+        </div>`);
     }
 
     function showReferralWelcomePopup(source) {
