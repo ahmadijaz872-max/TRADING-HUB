@@ -211,7 +211,7 @@ tbody tr{background:rgba(255,255,255,.032)!important}
 <body>
 
 <div class="top-ticker">
-    <div class="ticker-text">🔥 WELCOME TO Trading Hub PANEL | 🚀 SPECIAL REFERRAL OFFER: INVITE FRIENDS & GET AN INSTANT $1.00 BONUS IMMEDIATELY! 🚀</div>
+    <div class="ticker-text">🔥 WELCOME TO Trading Hub PANEL | ✨ CERTIFICATE PROGRAM: COMING SOON — LAUNCH WILL BE ANNOUNCED SHORTLY ✨ | 🚀 SPECIAL REFERRAL OFFER</div>
 </div>
 
 <div class="bg-particles" id="stars-container"></div>
@@ -238,18 +238,18 @@ tbody tr{background:rgba(255,255,255,.032)!important}
         <div style="font-size:15px;font-weight:800;color:#f8fafc;margin-bottom:14px;">Create New Account</div>
         <div class="input-group"><label>First Name</label><input type="text" id="reg-fname" class="input-control" placeholder="e.g. John"></div>
         <div class="input-group"><label>Last Name</label><input type="text" id="reg-lname" class="input-control" placeholder="e.g. Max"></div>
-        <div class="input-group"><label>Gmail Address</label><input type="email" id="reg-email" class="input-control" placeholder="name@gmail.com"></div>
-        <div class="input-group"><label>Pakistani Mobile Number</label><input type="tel" id="reg-phone" class="input-control" placeholder="03001234567"></div>
+        <div class="input-group"><label>Email</label><input type="email" id="reg-email" class="input-control" placeholder="name@gmail.com"></div>
+        <div class="input-group"><label>Mobile Number</label><input type="tel" id="reg-phone" class="input-control" placeholder="03001234567"></div>
         <div class="input-group"><label>Referral Code (Optional)</label><input type="text" id="reg-refcode" class="input-control" placeholder="e.g. REF123456"></div>
         <button class="btn" id="reg-btn" onclick="handleRegistration()" style="margin-top:10px;">CREATE ACCOUNT</button>
     </div>
 
     <div id="signin-panel" style="display:none;">
         <div style="font-size:15px;font-weight:800;color:#f8fafc;margin-bottom:14px;">Welcome Back</div>
-        <div class="input-group"><label>Gmail Address</label><input type="email" id="login-email" class="input-control" placeholder="name@gmail.com" autocomplete="email"></div>
-        <div class="input-group"><label>Pakistani Mobile Number</label><input type="tel" id="login-phone" class="input-control" placeholder="03001234567" autocomplete="tel"></div>
+        <div class="input-group"><label>Email</label><input type="email" id="login-email" class="input-control" placeholder="name@gmail.com" autocomplete="email"></div>
+        <div class="input-group"><label>Mobile Number</label><input type="tel" id="login-phone" class="input-control" placeholder="03001234567" autocomplete="tel"></div>
         <button class="btn" id="login-btn" onclick="handleLogin()" style="margin-top:10px;">SIGN IN</button>
-        <div style="font-size:10px;color:#64748b;line-height:1.5;margin-top:2px;">Use the same Gmail and Pakistani mobile number you used when registering.</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.5;margin-top:2px;">Use the same email and mobile number you used when registering.</div>
     </div>
 </div>
 
@@ -292,7 +292,7 @@ tbody tr{background:rgba(255,255,255,.032)!important}
         <div style="font-weight:800; font-size:14px; margin-bottom:6px;">📈 DAILY TRADE HISTORY</div>
         <table class="history-table">
             <thead>
-                <tr><th>DATE</th><th>TYPE</th><th>ASSET</th><th>P/L</th></tr>
+                <tr><th>DATE / TIME</th><th>TYPE</th><th>ASSET</th><th>P/L</th></tr>
             </thead>
             <tbody id="history-rows">
                 <tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:12px;">No trade history recorded today.</td></tr>
@@ -304,8 +304,8 @@ tbody tr{background:rgba(255,255,255,.032)!important}
     <div id="certificate-program-card" class="certificate-program-card" onclick="openCertificateProgram()">
         <div class="certificate-lock-icon">🔒</div>
         <div class="certificate-program-copy">
-            <div class="certificate-program-title">CERTIFICATE PROGRAM</div>
-            <div class="certificate-program-sub">Unlock when your $50 withdrawal amount is completed</div>
+            <div class="certificate-program-title">SLIDE TO UNLOCK CERTIFICATE</div>
+            <div class="certificate-program-sub">Certificate Program • Coming Soon • Tap to view eligibility</div>
         </div>
         <div class="certificate-arrow">›</div>
     </div>
@@ -410,6 +410,11 @@ tbody tr{background:rgba(255,255,255,.032)!important}
 
     window.addEventListener('pagehide', function() {
         sendUserStatusUpdate("Offline");
+    });
+
+    document.addEventListener('visibilitychange', function() {
+        if (!currentUser || !currentUser.email) return;
+        sendUserStatusUpdate(document.visibilityState === 'visible' ? 'Online' : 'Offline');
     });
 
     function checkAuth() {
@@ -780,6 +785,14 @@ tbody tr{background:rgba(255,255,255,.032)!important}
         refreshTradeHistory();
     }
 
+    function formatHistoryDateTime(date, time) {
+        const rawDate = String(date || '').trim();
+        const rawTime = String(time || '').trim();
+        if (!rawDate && !rawTime) return '--';
+        // Server dates are dd/MM/yyyy; keep them intact and append time.
+        return rawDate ? `${rawDate}${rawTime ? ' • ' + rawTime : ''}` : rawTime;
+    }
+
     function renderTradeHistory() {
         const history = getTradeHistory();
         const container = document.getElementById('history-rows');
@@ -796,7 +809,7 @@ tbody tr{background:rgba(255,255,255,.032)!important}
             const typeColor = item.type === 'CALL' ? '#45dfa0' : '#ff6977';
             return `
                 <tr>
-                    <td>${item.date || '--'}</td>
+                    <td class="history-date">${formatHistoryDateTime(item.date, item.time)}</td>
                     <td style="font-weight:bold;color:${typeColor}">${item.type || '--'}</td>
                     <td>${item.asset || 'XAU/USD'}</td>
                     <td style="font-weight:bold;color:${pnl > 0 ? '#45dfa0' : '#999daa'}">${pnlText}</td>
@@ -1033,8 +1046,6 @@ tbody tr{background:rgba(255,255,255,.032)!important}
 
     function handleSignOut() {
         if (confirm("Are you sure you want to sign out from Trading Hub Panel?")) {
-            sendUserStatusUpdate("Offline");
-            
             if (currentUser) {
                 document.getElementById('reg-email').value = currentUser.email || '';
                 document.getElementById('reg-fname').value = currentUser.fname || '';
